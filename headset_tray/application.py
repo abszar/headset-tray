@@ -168,6 +168,10 @@ class HeadsetTray(Gtk.Application):
         return GLib.SOURCE_CONTINUE
 
     def _poll(self) -> None:
+        # Looked for again on every poll until found, so that installing
+        # HeadsetControl while the tray runs needs no restart.
+        if self.headset.program is None:
+            self.headset.program = find_program()
         future = self.worker.submit(self.headset.read)
         future.add_done_callback(
             lambda done: GLib.idle_add(self._on_state, done.result())

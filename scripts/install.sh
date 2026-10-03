@@ -31,7 +31,7 @@ install -m 0644 "$project_root/data/headset-tray.service" \
 
 update-desktop-database "$user_data_root/applications" >/dev/null 2>&1 || true
 systemctl --user daemon-reload
-systemctl --user restart headset-tray.service
+timeout 60 systemctl --user restart headset-tray.service
 
 if ! command -v headsetcontrol >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/headsetcontrol" ]; then
     echo "Headset Tray is installed, but HeadsetControl is not:" >&2
