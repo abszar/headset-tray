@@ -29,6 +29,8 @@ class LabelTest(unittest.TestCase):
     def test_preset_label(self):
         self.assertEqual(preset_label(0), "Never")
         self.assertEqual(preset_label(30), "30 minutes")
+        self.assertEqual(preset_label(60), "1 hour")
+        self.assertEqual(preset_label(90), "1 hour 30 minutes")
 
 
 if __name__ == "__main__":

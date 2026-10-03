@@ -40,7 +40,15 @@ def status_line(state: Optional[HeadsetState]) -> str:
 
 
 def preset_label(minutes: int) -> str:
-    return "Never" if minutes == 0 else f"{minutes} minutes"
+    if minutes == 0:
+        return "Never"
+    hours, rest = divmod(minutes, 60)
+    parts = []
+    if hours:
+        parts.append(f"{hours} hour{'s' if hours > 1 else ''}")
+    if rest:
+        parts.append(f"{rest} minutes")
+    return " ".join(parts)
 
 
 class HeadsetTray(Gtk.Application):

@@ -8,7 +8,7 @@ without SteelSeries GG, which does not run on Linux.
 ```
 🎧 75%
 ├─ Battery: 75%
-├─ Turn off after ▸  Never · 5 · 10 · 15 · 30 · 60 · 90 minutes
+├─ Turn off after ▸  Never · 5 · 10 · 15 · 30 minutes · 1 hour · 1 hour 30 minutes
 ├─ ☑ Low-battery alert (at 25%)
 ├─ Refresh now
 └─ Quit
