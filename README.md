@@ -11,7 +11,7 @@ without SteelSeries GG, which does not run on Linux.
 ├─ Turn off after ▸  Never · 5 · 10 · 15 · 30 minutes · 1 hour · 1 hour 30 minutes
 ├─ ☑ Low-battery alert (at 25%)
 ├─ ☑ Evening charge reminder
-├─ Remind from ▸  20:00 · 21:00 · 22:00 · 23:00
+├─ Remind from ▸  20:00 · 20:30 · 21:00 · … · 23:30
 ├─ Refresh now
 └─ Quit
 ```
@@ -30,10 +30,11 @@ that HeadsetControl supports for battery and inactive time should work too.
   every time the headset reconnects, so a power cycle never undoes it.
 - Sends one notification when the battery drops to 25 %, and does not repeat
   it until the headset has been charged.
-- Evening charge reminder: from the hour you pick (21:00 by default) until
-  5:00, if the headset is on and not charging, it reminds you — with a sound —
-  to put it on charge before you sleep, every 30 minutes, until you do. Once it
-  has been seen charging, it stays quiet for the rest of the night.
+- Evening charge reminder: from the time you pick — any hour or half hour
+  from 20:00 to 23:30, 21:00 by default — until 5:00, if the headset is on
+  and not charging, it reminds you, with a sound, to put it on charge before
+  you sleep, every 30 minutes until you do. Once it has been seen charging, it
+  stays quiet for the rest of the night.
 
 > The Arctis Nova 7P reports its battery in five steps (0, 25, 50, 75 and
 > 100 %) until its January 2026 firmware update, so `100%` means “four bars”.

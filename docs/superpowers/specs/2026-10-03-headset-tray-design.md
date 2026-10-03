@@ -43,7 +43,7 @@ Battery: 75% (charging)        (insensitive status line)
 Turn off after ▸  Never / 5 / 10 / 15 / 30 / 60 / 90 min   (radio)
 ☑ Low-battery alert (at 25%)
 ☑ Evening charge reminder
-Remind from ▸  20:00 / 21:00 / 22:00 / 23:00   (radio)
+Remind from ▸  20:00 / 20:30 / … / 23:30   (radio, every half hour)
 Refresh now
 Quit
 ```
@@ -67,7 +67,8 @@ Added 2026-10-03. The user suspends the laptop every night between about
 - Not tied to suspend: logind only lets an application delay sleep by about
   five seconds (`InhibitDelayMaxSec`), too late to act on, and a blocking
   inhibitor could keep a closed laptop awake in a bag.
-- Instead, from the chosen hour (default 21:00) until 05:00, if the headset is
+- Instead, from the chosen time (every half hour from 20:00 to 23:30;
+  default 21:00) until 05:00, if the headset is
   on and not charging, a high-priority notification with a sound says to put
   it on charge. It repeats every 30 minutes while that stays true.
 - Once the headset has been seen charging that night, the reminder stays

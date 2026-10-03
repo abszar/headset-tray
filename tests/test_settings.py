@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from headset_tray.settings import AUTO_OFF_PRESETS, REMINDER_HOURS, Settings, SettingsStore
+from headset_tray.settings import AUTO_OFF_PRESETS, REMINDER_STARTS, Settings, SettingsStore
 
 
 class SettingsStoreTest(unittest.TestCase):
@@ -22,7 +22,7 @@ class SettingsStoreTest(unittest.TestCase):
                 auto_off_minutes=30,
                 low_battery_alert=True,
                 charge_reminder=True,
-                charge_reminder_hour=21,
+                charge_reminder_start=21 * 60,
             ),
         )
 
@@ -31,7 +31,7 @@ class SettingsStoreTest(unittest.TestCase):
             auto_off_minutes=0,
             low_battery_alert=False,
             charge_reminder=False,
-            charge_reminder_hour=23,
+            charge_reminder_start=23 * 60 + 30,
         )
         self.store.save(saved)
         self.assertEqual(self.store.load(), saved)
@@ -44,7 +44,7 @@ class SettingsStoreTest(unittest.TestCase):
                     "auto_off_minutes": 500,
                     "low_battery_alert": "yes",
                     "charge_reminder": 1,
-                    "charge_reminder_hour": 3,
+                    "charge_reminder_start": 21 * 60 + 15,
                 }
             )
         )
@@ -65,10 +65,18 @@ class SettingsStoreTest(unittest.TestCase):
         loaded = self.store.load()
         self.assertEqual(loaded.auto_off_minutes, 0)
         self.assertTrue(loaded.charge_reminder)
-        self.assertEqual(loaded.charge_reminder_hour, 21)
+        self.assertEqual(loaded.charge_reminder_start, 21 * 60)
 
-    def test_reminder_hours_are_evening_hours(self):
-        self.assertEqual(REMINDER_HOURS, (20, 21, 22, 23))
+    def test_reminder_starts_every_half_hour_from_eight_to_half_past_eleven(self):
+        self.assertEqual(
+            REMINDER_STARTS,
+            (1200, 1230, 1260, 1290, 1320, 1350, 1380, 1410),
+        )
+
+    def test_an_hour_saved_by_the_first_version_is_carried_over(self):
+        self.path.parent.mkdir(parents=True)
+        self.path.write_text(json.dumps({"charge_reminder_hour": 22}))
+        self.assertEqual(self.store.load().charge_reminder_start, 22 * 60)
 
 
 if __name__ == "__main__":

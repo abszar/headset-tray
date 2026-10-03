@@ -9,9 +9,10 @@ from pathlib import Path
 # these are the steps SteelSeries GG offers.
 AUTO_OFF_PRESETS = (0, 5, 10, 15, 30, 60, 90)
 DEFAULT_AUTO_OFF_MINUTES = 30
-# The hours the evening charge reminder can start from.
-REMINDER_HOURS = (20, 21, 22, 23)
-DEFAULT_REMINDER_HOUR = 21
+# When the evening charge reminder can start, in minutes after midnight:
+# every half hour from 20:00 to 23:30.
+REMINDER_STARTS = tuple(range(20 * 60, 24 * 60, 30))
+DEFAULT_REMINDER_START = 21 * 60
 
 
 @dataclass(frozen=True)
@@ -19,7 +20,7 @@ class Settings:
     auto_off_minutes: int = DEFAULT_AUTO_OFF_MINUTES
     low_battery_alert: bool = True
     charge_reminder: bool = True
-    charge_reminder_hour: int = DEFAULT_REMINDER_HOUR
+    charge_reminder_start: int = DEFAULT_REMINDER_START
 
 
 def default_path() -> Path:
@@ -49,14 +50,17 @@ class SettingsStore:
         reminder = stored.get("charge_reminder")
         if not isinstance(reminder, bool):
             reminder = defaults.charge_reminder
-        hour = stored.get("charge_reminder_hour")
-        if isinstance(hour, bool) or hour not in REMINDER_HOURS:
-            hour = defaults.charge_reminder_hour
+        start = stored.get("charge_reminder_start")
+        if start is None and isinstance(stored.get("charge_reminder_hour"), int):
+            # Written by the first version, which offered whole hours only.
+            start = stored["charge_reminder_hour"] * 60
+        if isinstance(start, bool) or start not in REMINDER_STARTS:
+            start = defaults.charge_reminder_start
         return Settings(
             auto_off_minutes=minutes,
             low_battery_alert=alert,
             charge_reminder=reminder,
-            charge_reminder_hour=hour,
+            charge_reminder_start=start,
         )
 
     def save(self, settings: Settings) -> None:

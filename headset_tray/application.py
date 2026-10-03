@@ -17,7 +17,7 @@ from gi.repository import AyatanaAppIndicator3, Gio, GLib, Gtk
 from .headset import HeadsetControl, HeadsetState, find_program
 from .monitor import LOW_BATTERY_PERCENT, decide
 from .reminder import ReminderState, step
-from .settings import AUTO_OFF_PRESETS, REMINDER_HOURS, Settings, SettingsStore
+from .settings import AUTO_OFF_PRESETS, REMINDER_STARTS, Settings, SettingsStore
 
 APP_ID = "io.github.abdelali.HeadsetTray"
 APP_NAME = "Headset Tray"
@@ -41,6 +41,11 @@ def status_line(state: Optional[HeadsetState]) -> str:
         return state.error or "Headset not connected"
     level = "unknown" if state.battery is None else f"{state.battery}%"
     return f"Battery: {level}{' (charging)' if state.charging else ''}"
+
+
+def clock_label(minutes_after_midnight: int) -> str:
+    hours, minutes = divmod(minutes_after_midnight, 60)
+    return f"{hours}:{minutes:02d}"
 
 
 def preset_label(minutes: int) -> str:
@@ -139,18 +144,18 @@ class HeadsetTray(Gtk.Application):
         self.reminder_item.connect("toggled", self._on_reminder_toggled)
         menu.append(self.reminder_item)
 
-        self.reminder_hour_item = Gtk.MenuItem(label="Remind from")
-        hours = Gtk.Menu()
+        self.reminder_start_item = Gtk.MenuItem(label="Remind from")
+        starts = Gtk.Menu()
         group = None
-        for hour in REMINDER_HOURS:
-            item = Gtk.RadioMenuItem.new_with_label_from_widget(group, f"{hour}:00")
+        for start in REMINDER_STARTS:
+            item = Gtk.RadioMenuItem.new_with_label_from_widget(group, clock_label(start))
             group = group or item
-            item.set_active(hour == self.settings.charge_reminder_hour)
-            item.connect("toggled", self._on_reminder_hour_toggled, hour)
-            hours.append(item)
-        self.reminder_hour_item.set_submenu(hours)
-        self.reminder_hour_item.set_sensitive(self.settings.charge_reminder)
-        menu.append(self.reminder_hour_item)
+            item.set_active(start == self.settings.charge_reminder_start)
+            item.connect("toggled", self._on_reminder_start_toggled, start)
+            starts.append(item)
+        self.reminder_start_item.set_submenu(starts)
+        self.reminder_start_item.set_sensitive(self.settings.charge_reminder)
+        menu.append(self.reminder_start_item)
         menu.append(Gtk.SeparatorMenuItem())
 
         refresh_item = Gtk.MenuItem(label="Refresh now")
@@ -189,14 +194,14 @@ class HeadsetTray(Gtk.Application):
 
     def _on_reminder_toggled(self, item: Gtk.CheckMenuItem) -> None:
         self._save(replace(self.settings, charge_reminder=item.get_active()))
-        self.reminder_hour_item.set_sensitive(item.get_active())
+        self.reminder_start_item.set_sensitive(item.get_active())
         if not item.get_active():
             self.withdraw_notification("charge-reminder")
 
-    def _on_reminder_hour_toggled(self, item: Gtk.RadioMenuItem, hour: int) -> None:
-        if not item.get_active() or hour == self.settings.charge_reminder_hour:
+    def _on_reminder_start_toggled(self, item: Gtk.RadioMenuItem, start: int) -> None:
+        if not item.get_active() or start == self.settings.charge_reminder_start:
             return
-        self._save(replace(self.settings, charge_reminder_hour=hour))
+        self._save(replace(self.settings, charge_reminder_start=start))
 
     def _save(self, settings: Settings) -> None:
         self.settings = settings
@@ -255,7 +260,7 @@ class HeadsetTray(Gtk.Application):
         if not self.settings.charge_reminder:
             return
         self.reminder, remind = step(
-            self.reminder, state, datetime.now(), self.settings.charge_reminder_hour
+            self.reminder, state, datetime.now(), self.settings.charge_reminder_start
         )
         if remind:
             self._notify_charge_reminder(state)

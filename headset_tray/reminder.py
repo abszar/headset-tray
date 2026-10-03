@@ -29,9 +29,12 @@ class ReminderState:
     last: Optional[datetime] = None
 
 
-def night_of(now: datetime, start_hour: int) -> Optional[date]:
-    """The evening `now` belongs to, if it falls in the reminder window."""
-    if now.hour >= start_hour:
+def night_of(now: datetime, start: int) -> Optional[date]:
+    """The evening `now` belongs to, if it falls in the reminder window.
+
+    `start` is when the window opens, in minutes after midnight.
+    """
+    if now.hour * 60 + now.minute >= start:
         return now.date()
     if now.hour < MORNING_HOUR:
         return now.date() - timedelta(days=1)
@@ -39,10 +42,10 @@ def night_of(now: datetime, start_hour: int) -> Optional[date]:
 
 
 def step(
-    state: ReminderState, headset: HeadsetState, now: datetime, start_hour: int
+    state: ReminderState, headset: HeadsetState, now: datetime, start: int
 ) -> tuple[ReminderState, bool]:
     """The new reminder state, and whether to remind the user now."""
-    night = night_of(now, start_hour)
+    night = night_of(now, start)
     if night is None:
         return ReminderState(), False
     if state.night != night:
