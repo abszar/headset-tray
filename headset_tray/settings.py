@@ -9,12 +9,17 @@ from pathlib import Path
 # these are the steps SteelSeries GG offers.
 AUTO_OFF_PRESETS = (0, 5, 10, 15, 30, 60, 90)
 DEFAULT_AUTO_OFF_MINUTES = 30
+# The hours the evening charge reminder can start from.
+REMINDER_HOURS = (20, 21, 22, 23)
+DEFAULT_REMINDER_HOUR = 21
 
 
 @dataclass(frozen=True)
 class Settings:
     auto_off_minutes: int = DEFAULT_AUTO_OFF_MINUTES
     low_battery_alert: bool = True
+    charge_reminder: bool = True
+    charge_reminder_hour: int = DEFAULT_REMINDER_HOUR
 
 
 def default_path() -> Path:
@@ -41,7 +46,18 @@ class SettingsStore:
         alert = stored.get("low_battery_alert")
         if not isinstance(alert, bool):
             alert = defaults.low_battery_alert
-        return Settings(auto_off_minutes=minutes, low_battery_alert=alert)
+        reminder = stored.get("charge_reminder")
+        if not isinstance(reminder, bool):
+            reminder = defaults.charge_reminder
+        hour = stored.get("charge_reminder_hour")
+        if isinstance(hour, bool) or hour not in REMINDER_HOURS:
+            hour = defaults.charge_reminder_hour
+        return Settings(
+            auto_off_minutes=minutes,
+            low_battery_alert=alert,
+            charge_reminder=reminder,
+            charge_reminder_hour=hour,
+        )
 
     def save(self, settings: Settings) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)

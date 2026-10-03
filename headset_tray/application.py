@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import shutil
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+from datetime import datetime
 from typing import Optional
 
 import gi
@@ -13,7 +16,8 @@ from gi.repository import AyatanaAppIndicator3, Gio, GLib, Gtk
 
 from .headset import HeadsetControl, HeadsetState, find_program
 from .monitor import LOW_BATTERY_PERCENT, decide
-from .settings import AUTO_OFF_PRESETS, Settings, SettingsStore
+from .reminder import ReminderState, step
+from .settings import AUTO_OFF_PRESETS, REMINDER_HOURS, Settings, SettingsStore
 
 APP_ID = "io.github.abdelali.HeadsetTray"
 APP_NAME = "Headset Tray"
@@ -68,6 +72,9 @@ class HeadsetTray(Gtk.Application):
         self.auto_off_pending = True
         self.auto_off_failed = False
         self.preset_items: dict[int, Gtk.RadioMenuItem] = {}
+        self.reminder = ReminderState()
+        # Plays a sound from the desktop's sound theme; ships with Ubuntu.
+        self.sound_player = shutil.which("canberra-gtk-play")
 
     def do_startup(self) -> None:
         Gtk.Application.do_startup(self)
@@ -126,6 +133,24 @@ class HeadsetTray(Gtk.Application):
         self.alert_item.set_active(self.settings.low_battery_alert)
         self.alert_item.connect("toggled", self._on_alert_toggled)
         menu.append(self.alert_item)
+
+        self.reminder_item = Gtk.CheckMenuItem(label="Evening charge reminder")
+        self.reminder_item.set_active(self.settings.charge_reminder)
+        self.reminder_item.connect("toggled", self._on_reminder_toggled)
+        menu.append(self.reminder_item)
+
+        self.reminder_hour_item = Gtk.MenuItem(label="Remind from")
+        hours = Gtk.Menu()
+        group = None
+        for hour in REMINDER_HOURS:
+            item = Gtk.RadioMenuItem.new_with_label_from_widget(group, f"{hour}:00")
+            group = group or item
+            item.set_active(hour == self.settings.charge_reminder_hour)
+            item.connect("toggled", self._on_reminder_hour_toggled, hour)
+            hours.append(item)
+        self.reminder_hour_item.set_submenu(hours)
+        self.reminder_hour_item.set_sensitive(self.settings.charge_reminder)
+        menu.append(self.reminder_hour_item)
         menu.append(Gtk.SeparatorMenuItem())
 
         refresh_item = Gtk.MenuItem(label="Refresh now")
@@ -155,12 +180,23 @@ class HeadsetTray(Gtk.Application):
         # Toggled fires for the item losing the selection as well.
         if not item.get_active() or minutes == self.settings.auto_off_minutes:
             return
-        self._save(Settings(minutes, self.settings.low_battery_alert))
+        self._save(replace(self.settings, auto_off_minutes=minutes))
         self.auto_off_pending = True
         self._apply_auto_off()
 
     def _on_alert_toggled(self, item: Gtk.CheckMenuItem) -> None:
-        self._save(Settings(self.settings.auto_off_minutes, item.get_active()))
+        self._save(replace(self.settings, low_battery_alert=item.get_active()))
+
+    def _on_reminder_toggled(self, item: Gtk.CheckMenuItem) -> None:
+        self._save(replace(self.settings, charge_reminder=item.get_active()))
+        self.reminder_hour_item.set_sensitive(item.get_active())
+        if not item.get_active():
+            self.withdraw_notification("charge-reminder")
+
+    def _on_reminder_hour_toggled(self, item: Gtk.RadioMenuItem, hour: int) -> None:
+        if not item.get_active() or hour == self.settings.charge_reminder_hour:
+            return
+        self._save(replace(self.settings, charge_reminder_hour=hour))
 
     def _save(self, settings: Settings) -> None:
         self.settings = settings
@@ -193,6 +229,7 @@ class HeadsetTray(Gtk.Application):
             self.auto_off_pending = True
         if decision.alert_low_battery and self.settings.low_battery_alert:
             self._notify_low_battery(state)
+        self._check_charge_reminder(state)
         self._apply_auto_off()
         self._refresh()
         return GLib.SOURCE_REMOVE
@@ -213,6 +250,39 @@ class HeadsetTray(Gtk.Application):
             self.auto_off_failed = not accepted
         self._refresh()
         return GLib.SOURCE_REMOVE
+
+    def _check_charge_reminder(self, state: HeadsetState) -> None:
+        if not self.settings.charge_reminder:
+            return
+        self.reminder, remind = step(
+            self.reminder, state, datetime.now(), self.settings.charge_reminder_hour
+        )
+        if remind:
+            self._notify_charge_reminder(state)
+        elif state.charging:
+            self.withdraw_notification("charge-reminder")
+
+    def _notify_charge_reminder(self, state: HeadsetState) -> None:
+        notification = Gio.Notification.new("Headset not charging")
+        left = "" if state.battery is None else f"{state.battery}% left — "
+        notification.set_body(f"{left}put it on charge before you sleep.")
+        notification.set_icon(Gio.ThemedIcon.new(ICON_NAME))
+        notification.set_priority(Gio.NotificationPriority.HIGH)
+        self.send_notification("charge-reminder", notification)
+        self._play_sound()
+
+    def _play_sound(self) -> None:
+        if self.sound_player is None:
+            return
+        try:
+            # Started and left to finish on its own: the sound is a cue, and
+            # nothing waits on it.
+            Gio.Subprocess.new(
+                [self.sound_player, "--id", "message-new-instant"],
+                Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE,
+            ).wait_async(None, None, None)
+        except GLib.Error as error:  # pragma: no cover - depends on host audio
+            print(f"headset-tray: could not play sound: {error}", file=sys.stderr)
 
     def _notify_low_battery(self, state: HeadsetState) -> None:
         notification = Gio.Notification.new("Headset battery low")

@@ -33,6 +33,7 @@ upgrades and departs from Stand Up Reminder).
 | `headset.py` | Runs HeadsetControl and parses its JSON into a `HeadsetState` (connected, battery %, charging, error message); sets the inactive time. The only module that knows about the CLI. |
 | `settings.py` | `Settings(auto_off_minutes=30, low_battery_alert=True)`, stored as `~/.config/headset-tray/settings.json`. Unknown or invalid values fall back to defaults. |
 | `monitor.py` | Pure logic, no GTK. Given the previous and new `HeadsetState`, decides whether to re-apply the auto-off time (headset just appeared), raise a low-battery alert (≤ 25 %, once), or re-arm the alert (charging or back above 25 %). |
+| `reminder.py` | Pure logic, no GTK. Decides when the evening charge reminder fires (see below). |
 | `application.py` | The indicator: `audio-headset-symbolic` icon, label `75%` or `—`, and the menu below. |
 
 Menu:
@@ -41,6 +42,8 @@ Menu:
 Battery: 75% (charging)        (insensitive status line)
 Turn off after ▸  Never / 5 / 10 / 15 / 30 / 60 / 90 min   (radio)
 ☑ Low-battery alert (at 25%)
+☑ Evening charge reminder
+Remind from ▸  20:00 / 21:00 / 22:00 / 23:00   (radio)
 Refresh now
 Quit
 ```
@@ -55,6 +58,23 @@ Quit
   is retried on the next poll, and the menu says so meanwhile.
 - The headset forgetting the setting (power cycle, dongle replug) is covered
   by re-applying it on every disconnected → connected transition.
+
+## Evening charge reminder
+
+Added 2026-10-03. The user suspends the laptop every night between about
+21:20 and 23:45 and wants the headset charged by morning.
+
+- Not tied to suspend: logind only lets an application delay sleep by about
+  five seconds (`InhibitDelayMaxSec`), too late to act on, and a blocking
+  inhibitor could keep a closed laptop awake in a bag.
+- Instead, from the chosen hour (default 21:00) until 05:00, if the headset is
+  on and not charging, a high-priority notification with a sound says to put
+  it on charge. It repeats every 30 minutes while that stays true.
+- Once the headset has been seen charging that night, the reminder stays
+  quiet until the next evening, because a full headset left on the charger
+  may stop reporting that it is charging. Starting to charge withdraws the
+  notification.
+- A switched-off headset cannot be read, so it never triggers the reminder.
 
 ## Error handling
 
