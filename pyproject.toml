@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "headset-tray"
+version = "1.0.0"
+description = "A GNOME top-bar indicator for a SteelSeries headset's battery and auto-off time"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Abdelali" }]
+# PyGObject and the GTK/AppIndicator typelibs come from the distribution
+# packages listed in README.md; HeadsetControl is built by
+# scripts/build-headsetcontrol.sh.
+dependencies = []
+
+[project.urls]
+Source = "https://github.com/abszar/headset-tray"
+
+[project.scripts]
+headset-tray = "headset_tray.application:main"
+
+[tool.setuptools]
+packages = ["headset_tray"]

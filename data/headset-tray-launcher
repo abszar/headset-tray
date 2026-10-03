@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+user_data_root=${XDG_DATA_HOME:-"$HOME/.local/share"}
+app_install_root="$user_data_root/headset-tray"
+
+cd "$app_install_root"
+exec /usr/bin/python3 -m headset_tray "$@"

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Headset Tray
+Comment=Start the headset indicator at login
+Exec=systemctl --user start headset-tray.service
+Icon=audio-headset-symbolic
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+OnlyShowIn=GNOME;Unity;

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Headset Tray
+Comment=Headset battery level and auto-off time in the top bar
+Exec=systemctl --user start headset-tray.service
+Icon=audio-headset-symbolic
+Terminal=false
+Categories=Utility;GTK;
+StartupNotify=false
